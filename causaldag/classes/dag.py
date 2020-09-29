@@ -790,12 +790,14 @@ class DAG:
         num_returned_positives = (num_true_positives + num_false_positives)
         fpr = num_false_positives/num_negatives if num_negatives != 0 else 0
         tpr = num_true_positives/num_positives if num_positives != 0 else 1
+        fdr = (len(reversed_arcs) + num_false_positives) / num_returned_positives
         precision = num_true_positives/num_returned_positives if num_returned_positives != 0 else 1
 
         if rates_only:
             return dict(
                 fpr=fpr,
                 tpr=tpr,
+                fdr=fdr,
                 precision=precision
             )
 
@@ -813,8 +815,11 @@ class DAG:
             num_false_negatives=num_false_negatives,
             num_true_positives=num_true_positives,
             num_true_negatives=num_true_negatives,
+            num_returned_positives=num_returned_positives,
+            precision=precision,
             fpr=fpr,
-            tpr=tpr
+            tpr=tpr,
+            fdr=fdr,
         )
 
         return res
@@ -1657,10 +1662,10 @@ class DAG:
         else:
             cut_edges = set()
             for iv_nodes in interventions:
-                cut_edges.update({(i, j) for i, j in self._arcs if len({i, j} & set(iv_nodes)) == 1})
+                for i,j in self._arcs:
+                    cut_edges.update({(i, j) for i, j in self._arcs if len({i, j} & set(iv_nodes)) == 1})
             known_arcs = cut_edges | cpdag._known_arcs
             pdag = PDAG(self._nodes, self._arcs, known_arcs=known_arcs)
-
         pdag.remove_unprotected_orientations()
         return pdag
 
